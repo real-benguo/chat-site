@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#008069" />
+<title>聊天</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23008069'/%3E%3Cpath d='M8 10.5h16v10H14l-4.5 3.2V20.5H8z' fill='%23fff'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ================= 首次使用 ================= -->
+<section id="screen-onboarding" class="screen hidden">
+  <form class="panel" id="form-onboarding">
+    <div class="panel-logo">💬</div>
+    <h1>你叫什么？</h1>
+    <p>起个名字，好友才能搜到你。<b>不用注册、不用手机号、不用邮箱。</b></p>
+    <input id="input-name" type="text" maxlength="16" placeholder="输入你的名字" autocomplete="off" />
+    <button type="submit" class="primary" id="btn-start">开始聊天</button>
+    <p class="error" id="onboarding-error"></p>
+    <p class="muted small">名字就是你的账号。身份存在这台设备的浏览器里，换设备要重新起名。</p>
+  </form>
+</section>
+
+<!-- ================= 主界面 ================= -->
+<main id="main" class="hidden">
+
+  <aside id="sidebar">
+    <header class="side-head">
+      <div class="side-title">
+        聊天
+        <span class="me-tag" id="me-tag">—</span>
+      </div>
+      <div class="side-actions">
+        <button class="icon-btn" id="btn-theme" title="深色 / 浅色">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-me" title="我的名字">
+          <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="8" r="3.4"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="search-wrap">
+      <div class="search-box">
+        <button class="icon-btn tiny" id="btn-search" title="搜索">
+          <svg viewBox="0 0 24 24" class="ic"><circle cx="11" cy="11" r="6.4"/><path d="M15.6 15.6 20 20"/></svg>
+        </button>
+        <input id="input-search" type="text" placeholder="输入对方的完整名字" autocomplete="off" />
+        <button class="icon-btn tiny hidden" id="btn-clear-search" title="清空">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div id="search-results" class="search-results hidden"></div>
+    </div>
+
+    <div id="chat-list" class="chat-list"></div>
+    <div class="conn" id="conn-status"></div>
+  </aside>
+
+  <section id="chat-pane">
+
+    <div id="chat-empty" class="chat-empty">
+      <div class="empty-art">💬</div>
+      <h2>选一个聊天开始</h2>
+      <p>或者在左上角搜索框输入对方的完整名字，添加好友</p>
+    </div>
+
+    <div id="chat-active" class="chat-active hidden">
+      <header class="chat-head">
+        <button class="icon-btn back" id="btn-back" title="返回">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <div class="avatar sm" id="peer-avatar">?</div>
+        <div class="chat-head-info">
+          <div class="peer-name" id="peer-name">—</div>
+          <div class="peer-status" id="peer-status">好友</div>
+        </div>
+        <button class="icon-btn lock-btn" id="btn-safety" title="加密验证码">
+          <svg viewBox="0 0 24 24" class="ic"><rect x="4.6" y="10.4" width="14.8" height="9.6" rx="2.2"/><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"/></svg>
+        </button>
+      </header>
+
+      <div class="messages" id="messages"></div>
+
+      <div class="upload-bar hidden" id="upload-bar">
+        <div class="upload-track"><div class="upload-fill" id="upload-fill"></div></div>
+        <span id="upload-text">处理中…</span>
+      </div>
+
+      <footer class="composer">
+        <div class="emoji-pop hidden" id="emoji-pop"></div>
+        <button class="icon-btn" id="btn-emoji" title="表情">
+          <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="8.4"/><circle cx="9" cy="10.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="10.4" r="1.1" fill="currentColor" stroke="none"/><path d="M8.4 14.2a4.4 4.4 0 0 0 7.2 0"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-image" title="发图片">
+          <svg viewBox="0 0 24 24" class="ic"><rect x="3.6" y="5" width="16.8" height="14" rx="2.4"/><circle cx="9" cy="10" r="1.5"/><path d="M4.6 17.4l4.6-4.4 3.4 3 2.6-2.4 4.2 4"/></svg>
+        </button>
+        <textarea id="input-msg" rows="1" placeholder="输入消息…"></textarea>
+        <button class="send-btn" id="btn-send" title="发送">
+          <svg viewBox="0 0 24 24" class="ic-solid"><path d="M3.2 20.6 21.4 12 3.2 3.4l.02 6.7L15 12 3.22 13.9z"/></svg>
+        </button>
+        <input type="file" id="file-image" accept="image/*" class="hidden" />
+      </footer>
+    </div>
+  </section>
+</main>
+
+<!-- ================= 图片放大 ================= -->
+<div id="lightbox" class="lightbox hidden">
+  <button class="lightbox-close" id="btn-lightbox-close" title="关闭">
+    <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <div id="lightbox-body"></div>
+</div>
+
+<!-- ================= 我的名字 ================= -->
+<div id="modal-me" class="modal hidden">
+  <div class="modal-box">
+    <h3>我的名字</h3>
+    <input id="input-me-name" type="text" maxlength="16" />
+    <p class="modal-note" id="my-id-note"></p>
+    <div class="modal-actions">
+      <button class="ghost" id="btn-me-cancel">取消</button>
+      <button class="primary" id="btn-me-save">保存</button>
+    </div>
+    <button class="danger-link" id="btn-signout">清空身份，重新开始（本机聊天记录会没）</button>
+  </div>
+</div>
+
+<!-- ================= 加密验证码 ================= -->
+<div id="modal-safety" class="modal hidden">
+  <div class="modal-box">
+    <h3>加密验证码</h3>
+    <p class="modal-note">你和对方看到的这串数字应该<b>完全一样</b>。一样，说明中间没人偷看。</p>
+    <div class="safety-num" id="safety-num">—</div>
+    <p class="modal-note small">打电话或当面念一遍，对上了就放心聊。对不上，说明有人在中间做手脚。</p>
+    <div class="modal-actions">
+      <button class="primary" id="btn-safety-ok">知道了</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="vendor/mqtt.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
