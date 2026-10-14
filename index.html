@@ -4,23 +4,62 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#008069" />
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; worker-src 'self' blob:; style-src 'self'; img-src 'self' blob: data:; connect-src wss://broker.emqx.io:8084; base-uri 'none'; form-action 'none'" />
+<meta name="referrer" content="no-referrer" />
 <title>聊天</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23008069'/%3E%3Cpath d='M8 10.5h16v10H14l-4.5 3.2V20.5H8z' fill='%23fff'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-<!-- ================= 首次使用 ================= -->
-<section id="screen-onboarding" class="screen hidden">
-  <form class="panel" id="form-onboarding">
+<!-- ================= 注册 / 登录 ================= -->
+<section id="screen-auth" class="screen hidden">
+  <div class="panel">
     <div class="panel-logo">💬</div>
-    <h1>你叫什么？</h1>
-    <p>起个名字，好友才能搜到你。<b>不用注册、不用手机号、不用邮箱。</b></p>
-    <input id="input-name" type="text" maxlength="16" placeholder="输入你的名字" autocomplete="off" />
-    <button type="submit" class="primary" id="btn-start">开始聊天</button>
-    <p class="error" id="onboarding-error"></p>
-    <p class="muted small">名字就是你的账号。身份存在这台设备的浏览器里，换设备要重新起名。</p>
-  </form>
+
+    <div class="tabs">
+      <button type="button" class="tab is-on" id="tab-register">注册</button>
+      <button type="button" class="tab" id="tab-login">登录</button>
+    </div>
+
+    <form id="form-auth">
+      <input id="auth-account" type="text" maxlength="16" placeholder="名字（就是你的账号）" autocomplete="off" spellcheck="false" />
+      <input id="auth-password" type="password" placeholder="密码（至少 8 位）" autocomplete="new-password" />
+      <input id="auth-password2" type="password" placeholder="再输一次密码" autocomplete="new-password" />
+
+      <label class="chk" id="chk-remember-wrap">
+        <input type="checkbox" id="auth-remember" checked />
+        <span>在这台设备上保持登录</span>
+      </label>
+
+      <button type="submit" class="primary" id="btn-auth">注册并开始</button>
+      <p class="error" id="auth-error"></p>
+    </form>
+
+    <p class="muted small" id="auth-note">
+      不用手机号、不用邮箱。密码用来加密你的聊天密钥，<b>服务器上存的也是密文</b>。<br>
+      密码忘了，账号就找不回来了 —— 没有客服能帮你重置。
+    </p>
+  </div>
+</section>
+
+<!-- ================= 旧身份升级：设置密码 ================= -->
+<section id="screen-upgrade" class="screen hidden">
+  <div class="panel">
+    <div class="panel-logo">🔐</div>
+    <h1>给账号加个密码</h1>
+    <p>你之前已经在用这个网站了。现在加个密码，以后换手机也能找回聊天记录。</p>
+    <form id="form-upgrade">
+      <input id="up-account" type="text" maxlength="16" placeholder="你的名字" autocomplete="off" />
+      <input id="up-password" type="password" placeholder="设个密码（至少 8 位）" autocomplete="new-password" />
+      <input id="up-password2" type="password" placeholder="再输一次" autocomplete="new-password" />
+      <label class="chk"><input type="checkbox" id="up-remember" checked /><span>在这台设备上保持登录</span></label>
+      <button type="submit" class="primary" id="btn-upgrade">设置密码并继续</button>
+      <p class="error" id="up-error"></p>
+    </form>
+    <button type="button" class="danger-link" id="btn-upgrade-skip">先不设，直接进去用</button>
+  </div>
 </section>
 
 <!-- ================= 主界面 ================= -->
@@ -36,7 +75,10 @@
         <button class="icon-btn" id="btn-theme" title="深色 / 浅色">
           <svg viewBox="0 0 24 24" class="ic"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
         </button>
-        <button class="icon-btn" id="btn-me" title="我的名字">
+        <button class="icon-btn" id="btn-settings" title="设置">
+          <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-me" title="我的账号">
           <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="8" r="3.4"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0z"/></svg>
         </button>
       </div>
@@ -47,7 +89,7 @@
         <button class="icon-btn tiny" id="btn-search" title="搜索">
           <svg viewBox="0 0 24 24" class="ic"><circle cx="11" cy="11" r="6.4"/><path d="M15.6 15.6 20 20"/></svg>
         </button>
-        <input id="input-search" type="text" placeholder="输入对方的完整名字" autocomplete="off" />
+        <input id="input-search" type="text" placeholder="输入对方的完整名字" autocomplete="off" spellcheck="false" />
         <button class="icon-btn tiny hidden" id="btn-clear-search" title="清空">
           <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
@@ -90,22 +132,38 @@
       </div>
 
       <footer class="composer">
-        <div class="emoji-pop hidden" id="emoji-pop"></div>
-        <button class="icon-btn" id="btn-emoji" title="表情">
-          <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="8.4"/><circle cx="9" cy="10.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="10.4" r="1.1" fill="currentColor" stroke="none"/><path d="M8.4 14.2a4.4 4.4 0 0 0 7.2 0"/></svg>
-        </button>
-        <button class="icon-btn" id="btn-image" title="发图片">
-          <svg viewBox="0 0 24 24" class="ic"><rect x="3.6" y="5" width="16.8" height="14" rx="2.4"/><circle cx="9" cy="10" r="1.5"/><path d="M4.6 17.4l4.6-4.4 3.4 3 2.6-2.4 4.2 4"/></svg>
-        </button>
-        <textarea id="input-msg" rows="1" placeholder="输入消息…"></textarea>
-        <button class="send-btn" id="btn-send" title="发送">
-          <svg viewBox="0 0 24 24" class="ic-solid"><path d="M3.2 20.6 21.4 12 3.2 3.4l.02 6.7L15 12 3.22 13.9z"/></svg>
-        </button>
-        <input type="file" id="file-image" accept="image/*" class="hidden" />
+        <div class="reply-bar hidden" id="reply-bar">
+          <div class="reply-line"></div>
+          <div class="reply-body">
+            <div class="reply-name" id="reply-name">—</div>
+            <div class="reply-text" id="reply-text">—</div>
+          </div>
+          <button class="icon-btn tiny" id="btn-reply-cancel" title="取消引用">
+            <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+
+        <div class="composer-row">
+          <div class="emoji-pop hidden" id="emoji-pop"></div>
+          <button class="icon-btn" id="btn-emoji" title="表情">
+            <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="8.4"/><circle cx="9" cy="10.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="10.4" r="1.1" fill="currentColor" stroke="none"/><path d="M8.4 14.2a4.4 4.4 0 0 0 7.2 0"/></svg>
+          </button>
+          <button class="icon-btn" id="btn-image" title="发图片">
+            <svg viewBox="0 0 24 24" class="ic"><rect x="3.6" y="5" width="16.8" height="14" rx="2.4"/><circle cx="9" cy="10" r="1.5"/><path d="M4.6 17.4l4.6-4.4 3.4 3 2.6-2.4 4.2 4"/></svg>
+          </button>
+          <textarea id="input-msg" rows="1" placeholder="输入消息…"></textarea>
+          <button class="send-btn" id="btn-send" title="发送">
+            <svg viewBox="0 0 24 24" class="ic-solid"><path d="M3.2 20.6 21.4 12 3.2 3.4l.02 6.7L15 12 3.22 13.9z"/></svg>
+          </button>
+          <input type="file" id="file-image" accept="image/*" class="hidden" />
+        </div>
       </footer>
     </div>
   </section>
 </main>
+
+<!-- ================= 消息长按菜单 ================= -->
+<div id="ctx-menu" class="ctx-menu hidden"></div>
 
 <!-- ================= 图片放大 ================= -->
 <div id="lightbox" class="lightbox hidden">
@@ -115,17 +173,59 @@
   <div id="lightbox-body"></div>
 </div>
 
-<!-- ================= 我的名字 ================= -->
+<!-- ================= 转发 ================= -->
+<div id="modal-forward" class="modal hidden">
+  <div class="modal-box">
+    <h3>转发给…</h3>
+    <div class="fwd-list" id="fwd-list"></div>
+    <div class="modal-actions">
+      <button class="ghost" id="btn-fwd-cancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 设置 ================= -->
+<div id="modal-settings" class="modal hidden">
+  <div class="modal-box">
+    <h3>设置</h3>
+
+    <label class="chk row">
+      <input type="checkbox" id="set-read" checked />
+      <span>发送已读回执<br><i class="muted small">关掉后对方看不到你的蓝色双勾，你也看不到他的</i></span>
+    </label>
+
+    <label class="chk row">
+      <input type="checkbox" id="set-typing" checked />
+      <span>显示「正在输入…」<br><i class="muted small">关掉后不告诉对方你在打字</i></span>
+    </label>
+
+    <label class="chk row">
+      <input type="checkbox" id="set-preview" checked />
+      <span>聊天列表显示消息预览<br><i class="muted small">关掉后列表只显示「有新消息」</i></span>
+    </label>
+
+    <hr class="sep" />
+    <button class="danger-link" id="btn-wipe">清空本机全部数据（身份、聊天记录）</button>
+    <div class="modal-actions">
+      <button class="primary" id="btn-set-ok">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 我的账号 ================= -->
 <div id="modal-me" class="modal hidden">
   <div class="modal-box">
-    <h3>我的名字</h3>
-    <input id="input-me-name" type="text" maxlength="16" />
-    <p class="modal-note" id="my-id-note"></p>
+    <h3>我的账号</h3>
+    <div class="kv"><span>名字</span><b id="me-name">—</b></div>
+    <div class="kv"><span>账号 ID</span><b id="me-pid" class="mono">—</b></div>
+    <div class="kv"><span>密码</span><b>已设置 🔐</b></div>
+    <p class="modal-note small">
+      名字不能改（它就是你的账号）。换设备时用「名字 + 密码」登录就能找回全部聊天记录。
+    </p>
     <div class="modal-actions">
-      <button class="ghost" id="btn-me-cancel">取消</button>
-      <button class="primary" id="btn-me-save">保存</button>
+      <button class="primary" id="btn-me-ok">知道了</button>
     </div>
-    <button class="danger-link" id="btn-signout">清空身份，重新开始（本机聊天记录会没）</button>
+    <button class="danger-link" id="btn-logout">退出登录</button>
   </div>
 </div>
 
